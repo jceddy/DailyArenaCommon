@@ -1,5 +1,4 @@
 ﻿using Serilog;
-using System.Management;
 using System.Windows;
 
 namespace DailyArena.Common.Extensions
