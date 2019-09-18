@@ -1,4 +1,5 @@
 ﻿using Serilog;
+using System.Management;
 using System.Windows;
 
 namespace DailyArena.Common.Extensions
@@ -20,6 +21,27 @@ namespace DailyArena.Common.Extensions
 		{
 			IApp application = (IApp)Application.Current;
 			_logger = application.Logger;
+		}
+
+		/// <summary>
+		/// Tries to get the value of a ManagementObject property by name.
+		/// </summary>
+		/// <param name="wmiObj">The object that is being queried.</param>
+		/// <param name="propertyName">The name of the property to get.</param>
+		/// <returns>The value of the requested property, if it exists; null otherwise.</returns>
+		public static object TryGetProperty(this ManagementObject wmiObj, string propertyName)
+		{
+			object retval;
+			try
+			{
+				retval = wmiObj.GetPropertyValue(propertyName);
+			}
+			catch (ManagementException ex)
+			{
+				_logger.Error(ex, "ManagementObject doesn't contain property {0}", propertyName);
+				retval = null;
+			}
+			return retval;
 		}
 	}
 }
