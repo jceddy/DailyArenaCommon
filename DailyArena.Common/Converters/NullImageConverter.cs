@@ -8,7 +8,7 @@ namespace DailyArena.Common.Converters
 	/// <summary>
 	/// Converter that handles Xaml bindings for images links to null Uris.
 	/// </summary>
-	public class NullImageConverter
+	public class NullImageConverter : IValueConverter
 	{
 		/// <summary>
 		/// If the Uri is null, unset the balue of the dependency property.
