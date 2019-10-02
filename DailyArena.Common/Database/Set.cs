@@ -81,6 +81,11 @@ namespace DailyArena.Common.Database
 		public bool RotationSafe { get; private set; }
 
 		/// <summary>
+		/// Gets a flag representing whether the set is standard legal (has not rotated).
+		/// </summary>
+		public bool StandardLegal { get; private set; }
+
+		/// <summary>
 		/// The Set constructor, called by the static CreateSet method.
 		/// </summary>
 		/// <param name="name">The set's full name.</param>
@@ -109,6 +114,7 @@ namespace DailyArena.Common.Database
 			HashCode = arenaCode.GetHashCode();
 			Rotation = rotation;
 			RotationSafe = Rotation.AddDays(-80) > DateTime.Now;
+			StandardLegal = Rotation > DateTime.Now;
 			ExtendedCardInfo = new ReadOnlyDictionary<int, CardInfo>(extendedCardInfo);
 		}
 

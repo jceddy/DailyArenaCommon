@@ -518,5 +518,16 @@ namespace DailyArena.Common.Database
 				return CardsByName[Name].Where(x => x.Set.RotationSafe).Count() > 0;
 			}
 		}
+
+		/// <summary>
+		/// Gets whether the card is standard legal.
+		/// </summary>
+		public bool StandardLegal
+		{
+			get
+			{
+				return CardsByName[Name].Where(x => x.Set.StandardLegal).Count() > 0;
+			}
+		}
 	}
 }
