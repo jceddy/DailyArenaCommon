@@ -61,24 +61,29 @@ namespace DailyArena.Common.Database
 		public string Type { get; private set; }
 
 		/// <summary>
-		/// This card's casting cost.
+		/// Gets or sets this card's casting cost.
 		/// </summary>
 		public string Cost { get; private set; }
 
 		/// <summary>
-		/// This card's converted mana cost.
+		/// Gets or sets this card's converted mana cost.
 		/// </summary>
 		public int Cmc { get; private set; }
 
 		/// <summary>
-		/// The average number of boosters required to open this card or a wildcard with this card's rarity.
+		/// Gets or sets the average number of boosters required to open this card or a wildcard with this card's rarity.
 		/// </summary>
 		public double BoosterCost { get; private set; }
 
 		/// <summary>
-		/// The card's unique identifier on Scryfall.
+		/// Gets or sets the card's unique identifier on Scryfall.
 		/// </summary>
 		public string ScryfallId { get; private set; }
+
+		/// <summary>
+		/// Gets or sets the card's printed name (might not match Name for different languages).
+		/// </summary>
+		public string PrintedName { get; private set; }
 
 		/// <summary>
 		/// Gets the card's color identity;
@@ -234,6 +239,7 @@ namespace DailyArena.Common.Database
 			Cost = cost;
 			Cmc = cmc;
 			ScryfallId = scryfallId;
+			PrintedName = name;
 
 			if (Rarity == CardRarity.BasicLand)
 			{
@@ -247,6 +253,19 @@ namespace DailyArena.Common.Database
 					cardFreq += BoosterFreq();
 				}
 				BoosterCost = 1.0 / cardFreq;
+			}
+		}
+
+		/// <summary>
+		/// Fetch language-specific data from the card-database and update ScryfallId and PrintedName if necessary.
+		/// </summary>
+		public void UpdateLanguageMappings()
+		{
+			Tuple<string, string> languageMapping = CardDatabase.GetMappedLanguageData(this);
+			if(languageMapping != null)
+			{
+				PrintedName = languageMapping.Item1;
+				ScryfallId = languageMapping.Item2;
 			}
 		}
 
