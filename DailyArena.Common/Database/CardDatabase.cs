@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using DailyArena.Common.Utility;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -147,24 +148,14 @@ namespace DailyArena.Common.Database
 
 				bool saveLanguageMappings = true;
 
-				var languageMappingsRequest = WebRequest.Create(languageMappingJsonUrl);
-				languageMappingsRequest.Method = "GET";
-				languageMappingsRequest.Timeout = 200000;
 				try
 				{
-					using (var languageMappingsResponse = languageMappingsRequest.GetResponse())
-					{
-						using (Stream languageMappingsResponseStream = languageMappingsResponse.GetResponseStream())
-						using (StreamReader languageMappingsResponseReader = new StreamReader(languageMappingsResponseStream))
-						{
-							var result = languageMappingsResponseReader.ReadToEnd();
-							dynamic data = JToken.Parse(result);
+					var result = WebUtilities.FetchStringFromUrl(languageMappingJsonUrl);
+					dynamic data = JToken.Parse(result);
 
-							foreach (dynamic mapping in data)
-							{
-								_languageMappings[(string)mapping.Key] = new Tuple<string, string>((string)mapping.Value["printed_name"], (string)mapping.Value["scryfall_id"]);
-							}
-						}
+					foreach (dynamic mapping in data)
+					{
+						_languageMappings[(string)mapping.Key] = new Tuple<string, string>((string)mapping.Value["printed_name"], (string)mapping.Value["scryfall_id"]);
 					}
 				}
 				catch (WebException)
@@ -315,34 +306,23 @@ namespace DailyArena.Common.Database
 
 			var downloadData = false;
 
-			var timestampJsonRequest = (HttpWebRequest)WebRequest.Create(timestampJsonUrl);
-			timestampJsonRequest.Method = "GET";
-			timestampJsonRequest.Timeout = 200000;
-
 			try
 			{
-				using (var timestampJsonResponse = timestampJsonRequest.GetResponse())
+				string result = WebUtilities.FetchStringFromUrl(timestampJsonUrl);
+				using (StringReader resultStringReader = new StringReader(result))
+				using (JsonTextReader resultJsonReader = new JsonTextReader(resultStringReader) { DateParseHandling = DateParseHandling.None })
 				{
-					using (Stream timestampJsonResponseStream = timestampJsonResponse.GetResponseStream())
-					using (StreamReader timestampJsonResponseReader = new StreamReader(timestampJsonResponseStream))
+					dynamic json = JToken.ReadFrom(resultJsonReader);
+					foreach (var timestamp in json)
 					{
-						string result = timestampJsonResponseReader.ReadToEnd();
-						using (StringReader resultStringReader = new StringReader(result))
-						using (JsonTextReader resultJsonReader = new JsonTextReader(resultStringReader) { DateParseHandling = DateParseHandling.None })
-						{
-							dynamic json = JToken.ReadFrom(resultJsonReader);
-							foreach (var timestamp in json)
-							{
-								_serverTimestamps[(string)timestamp.Name] = (string)timestamp.Value;
-							}
+						_serverTimestamps[(string)timestamp.Name] = (string)timestamp.Value;
+					}
 
-							if ((string.Compare(_serverTimestamps["CardDatabase"], LastCardDatabaseUpdate) > 0) ||
-								(string.Compare(_serverTimestamps["StandardSets"], LastStandardSetsUpdate) > 0))
-							{
-								downloadData = true;
-								_downloadLanguageMappings = true;
-							}
-						}
+					if ((string.Compare(_serverTimestamps["CardDatabase"], LastCardDatabaseUpdate) > 0) ||
+						(string.Compare(_serverTimestamps["StandardSets"], LastStandardSetsUpdate) > 0))
+					{
+						downloadData = true;
+						_downloadLanguageMappings = true;
 					}
 				}
 			}
@@ -372,36 +352,26 @@ namespace DailyArena.Common.Database
 				LastStandardSetsUpdate = _serverTimestamps["StandardSets"];
 				bool saveCardDatabase = true;
 
-				var standardSetsRequest = WebRequest.Create(standardSetsUrl);
-				standardSetsRequest.Method = "GET";
-				standardSetsRequest.Timeout = 200000;
 				try
 				{
-					using (var standardSetsResponse = standardSetsRequest.GetResponse())
+					var result = WebUtilities.FetchStringFromUrl(standardSetsUrl);
+					dynamic data = JToken.Parse(result);
+
+					foreach (dynamic set in data)
 					{
-						using (Stream standardSetsResponseStream = standardSetsResponse.GetResponseStream())
-						using (StreamReader standardSetsResponseReader = new StreamReader(standardSetsResponseStream))
+						Dictionary<int, Set.CardInfo> extendedCardInfo = new Dictionary<int, Set.CardInfo>();
+						foreach (dynamic cardInfo in set.Value["extended_card_info"])
 						{
-							var result = standardSetsResponseReader.ReadToEnd();
-							dynamic data = JToken.Parse(result);
-
-							foreach (dynamic set in data)
-							{
-								Dictionary<int, Set.CardInfo> extendedCardInfo = new Dictionary<int, Set.CardInfo>();
-								foreach (dynamic cardInfo in set.Value["extended_card_info"])
-								{
-									extendedCardInfo[int.Parse(cardInfo.Name)] = new Set.CardInfo((string)cardInfo.Value["color_identity"]);
-								}
-
-								standardSetsInfo[(string)set.Value["name"]] = new Tuple<List<string>, Dictionary<CardRarity, int>, int, DateTime, Dictionary<int, Set.CardInfo>>(
-									set.Value["not_in_booster"].ToObject<List<string>>(),
-									set.Value["rarity_counts"].ToObject<Dictionary<CardRarity, int>>(),
-									(int)set.Value["total_cards"],
-									set.Value["rotation"] == null ? DateTime.MaxValue : DateTime.Parse((string)set.Value["rotation"]),
-									extendedCardInfo
-								);
-							}
+							extendedCardInfo[int.Parse(cardInfo.Name)] = new Set.CardInfo((string)cardInfo.Value["color_identity"]);
 						}
+
+						standardSetsInfo[(string)set.Value["name"]] = new Tuple<List<string>, Dictionary<CardRarity, int>, int, DateTime, Dictionary<int, Set.CardInfo>>(
+							set.Value["not_in_booster"].ToObject<List<string>>(),
+							set.Value["rarity_counts"].ToObject<Dictionary<CardRarity, int>>(),
+							(int)set.Value["total_cards"],
+							set.Value["rotation"] == null ? DateTime.MaxValue : DateTime.Parse((string)set.Value["rotation"]),
+							extendedCardInfo
+						);
 					}
 				}
 				catch (WebException)
@@ -409,58 +379,48 @@ namespace DailyArena.Common.Database
 					saveCardDatabase = false;
 				}
 
-				var cardDatabaseRequest = WebRequest.Create(cardDatabaseUrl);
-				cardDatabaseRequest.Method = "GET";
-				cardDatabaseRequest.Timeout = 200000;
 				try
 				{
-					using (var cardDatabaseResponse = cardDatabaseRequest.GetResponse())
-					{
-						using (Stream cardDatabaseResponseStream = cardDatabaseResponse.GetResponseStream())
-						using (StreamReader cardDatabaseResponseReader = new StreamReader(cardDatabaseResponseStream))
-						{
-							var result = cardDatabaseResponseReader.ReadToEnd();
-							dynamic data = JToken.Parse(result);
+					var result = WebUtilities.FetchStringFromUrl(cardDatabaseUrl);
+					dynamic data = JToken.Parse(result);
 
-							Set.ClearSets();
-							foreach (dynamic set in data["sets"])
+					Set.ClearSets();
+					foreach (dynamic set in data["sets"])
+					{
+						if (standardSetsInfo.ContainsKey(set.Name))
+						{
+							Tuple<List<string>, Dictionary<CardRarity, int>, int, DateTime, Dictionary<int, Set.CardInfo>> setInfo = standardSetsInfo[set.Name];
+							Set.CreateSet(set.Name, (string)set.Value["scryfall"], (string)set.Value["arenacode"], setInfo.Item1, setInfo.Item3, setInfo.Item2, setInfo.Item4, setInfo.Item5);
+						}
+						else
+						{
+							Set.CreateSet(set.Name, (string)set.Value["scryfall"], (string)set.Value["arenacode"], new List<string>(), 0,
+								new Dictionary<CardRarity, int>() {
+								{ CardRarity.Common, 0 },
+								{ CardRarity.Uncommon, 0 },
+								{ CardRarity.Rare, 0 },
+								{ CardRarity.MythicRare, 0 }
+								}, DateTime.MaxValue, new Dictionary<int, Set.CardInfo>());
+						}
+					}
+					Card.ClearCards();
+					foreach (dynamic card in data.cards)
+					{
+						if ((bool)card.Value["collectible"] || (bool)card.Value["craftable"])
+						{
+							string scryfallId = string.Empty;
+							if (card.Value["images"] != null)
 							{
-								if (standardSetsInfo.ContainsKey(set.Name))
+								scryfallId = (string)card.Value["images"]["normal"];
+								if (!string.IsNullOrWhiteSpace(scryfallId))
 								{
-									Tuple<List<string>, Dictionary<CardRarity, int>, int, DateTime, Dictionary<int, Set.CardInfo>> setInfo = standardSetsInfo[set.Name];
-									Set.CreateSet(set.Name, (string)set.Value["scryfall"], (string)set.Value["arenacode"], setInfo.Item1, setInfo.Item3, setInfo.Item2, setInfo.Item4, setInfo.Item5);
-								}
-								else
-								{
-									Set.CreateSet(set.Name, (string)set.Value["scryfall"], (string)set.Value["arenacode"], new List<string>(), 0,
-										new Dictionary<CardRarity, int>() {
-										{ CardRarity.Common, 0 },
-										{ CardRarity.Uncommon, 0 },
-										{ CardRarity.Rare, 0 },
-										{ CardRarity.MythicRare, 0 }
-										}, DateTime.MaxValue, new Dictionary<int, Set.CardInfo>());
+									scryfallId = scryfallId.Substring(scryfallId.LastIndexOf('/') + 1).Split('.')[0];
 								}
 							}
-							Card.ClearCards();
-							foreach (dynamic card in data.cards)
-							{
-								if ((bool)card.Value["collectible"] || (bool)card.Value["craftable"])
-								{
-									string scryfallId = string.Empty;
-									if (card.Value["images"] != null)
-									{
-										scryfallId = (string)card.Value["images"]["normal"];
-										if (!string.IsNullOrWhiteSpace(scryfallId))
-										{
-											scryfallId = scryfallId.Substring(scryfallId.LastIndexOf('/') + 1).Split('.')[0];
-										}
-									}
-									Card.CreateCard((int)card.Value["id"], (string)card.Value["name"], (string)card.Value["set"], (string)card.Value["cid"],
-										(string)card.Value["rarity"], string.Join("", card.Value["cost"].ToObject<string[]>()).ToUpper(),
-										(int)card.Value["rank"], (string)card.Value["type"], string.Join("", card.Value["cost"].ToObject<string[]>()).ToUpper(),
-										(int)card.Value["cmc"], scryfallId);
-								}
-							}
+							Card.CreateCard((int)card.Value["id"], (string)card.Value["name"], (string)card.Value["set"], (string)card.Value["cid"],
+								(string)card.Value["rarity"], string.Join("", card.Value["cost"].ToObject<string[]>()).ToUpper(),
+								(int)card.Value["rank"], (string)card.Value["type"], string.Join("", card.Value["cost"].ToObject<string[]>()).ToUpper(),
+								(int)card.Value["cmc"], scryfallId);
 						}
 					}
 				}
