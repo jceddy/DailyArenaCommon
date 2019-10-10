@@ -155,7 +155,7 @@ namespace DailyArena.Common.Database
 
 					foreach (dynamic mapping in data)
 					{
-						_languageMappings[(string)mapping.Key] = new Tuple<string, string>((string)mapping.Value["printed_name"], (string)mapping.Value["scryfall_id"]);
+						_languageMappings[(string)mapping.Name] = new Tuple<string, string>((string)mapping.Value["printed_name"], (string)mapping.Value["scryfall_id"]);
 					}
 				}
 				catch (WebException)
