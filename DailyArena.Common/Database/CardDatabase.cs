@@ -67,9 +67,17 @@ namespace DailyArena.Common.Database
 		public static Tuple<string, string> GetMappedLanguageData(Card card)
 		{
 			Regex pattern = new Regex("[^A-Za-z0-9]");
-			string mappingKey = $"{pattern.Replace(card.Name, "")}_{pattern.Replace(card.Set.Name, "")}_{card.CollectorNumber}";
+			var replacedName = pattern.Replace(card.Name, "");
+			string mappingKey = $"{replacedName}_{pattern.Replace(card.Set.Name, "")}_{card.CollectorNumber}";
 
-			return _languageMappings.ContainsKey(mappingKey) ? _languageMappings[mappingKey] : null;
+			if(_languageMappings.ContainsKey(mappingKey))
+			{
+				return _languageMappings[mappingKey];
+			}
+			else 
+			{
+				return _languageMappings.Where(x => x.Key.StartsWith($"{replacedName}_")).Select(x => x.Value).FirstOrDefault();
+			}
 		}
 
 		/// <summary>
