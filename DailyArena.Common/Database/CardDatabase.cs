@@ -66,7 +66,7 @@ namespace DailyArena.Common.Database
 
 		public static Tuple<string, string> GetMappedLanguageData(Card card)
 		{
-			Regex pattern = new Regex("/[^A-Za-z0-9]/");
+			Regex pattern = new Regex("[^A-Za-z0-9]");
 			string mappingKey = $"{pattern.Replace(card.Name, "")}_{pattern.Replace(card.Set.Name, "")}_{card.CollectorNumber}";
 
 			return _languageMappings.ContainsKey(mappingKey) ? _languageMappings[mappingKey] : null;
