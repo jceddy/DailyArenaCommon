@@ -39,7 +39,8 @@ namespace DailyArena.Common.Utility
 					MainInstruction = credentialDialogInstruction,
 					Content = credentialDialogContent
 				};
-				bool ok = credentialDialog.ShowDialog(mainWindow);
+				bool ok = false;
+				mainWindow.Dispatcher.Invoke(() => { ok = credentialDialog.ShowDialog(mainWindow); });
 
 				if (ok)
 				{
