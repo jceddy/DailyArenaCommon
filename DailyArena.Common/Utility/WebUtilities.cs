@@ -20,8 +20,9 @@ namespace DailyArena.Common.Utility
 		/// Fetch a specified url and return a string with its contents.
 		/// </summary>
 		/// <param name="url">The url to fetch.</param>
+		/// <param name="ignoreWebException">If this is true, ignore WebExceptions (return null on failure instead).</param>
 		/// <returns>A string with the contents of the resource at the specified url.</returns>
-		public static string FetchStringFromUrl(string url)
+		public static string FetchStringFromUrl(string url, bool ignoreWebException = false)
 		{
 			var request = WebRequest.Create(url);
 			request.Method = "GET";
@@ -37,25 +38,30 @@ namespace DailyArena.Common.Utility
 					}
 				}
 			}
-			catch (WebException e)
-			{
-				if(!e.Message.Contains("timed out"))
-				{
-					throw;
-				}
-			}
+			catch (WebException) { /* just retry it */ }
 
 			// if we got here, that means the original request timed out...we will give it one more try with a longer time-out value before we give up completely
 			request = WebRequest.Create(url);
 			request.Method = "GET";
 			request.Timeout = Timeout * 2;
-			using (var response = request.GetResponse())
+			try
 			{
-				using (Stream responseStream = response.GetResponseStream())
-				using (StreamReader responseReader = new StreamReader(responseStream))
+				using (var response = request.GetResponse())
 				{
-					return responseReader.ReadToEnd();
+					using (Stream responseStream = response.GetResponseStream())
+					using (StreamReader responseReader = new StreamReader(responseStream))
+					{
+						return responseReader.ReadToEnd();
+					}
 				}
+			}
+			catch(WebException)
+			{
+				if(ignoreWebException)
+				{
+					return null;
+				}
+				throw;
 			}
 		}
 
@@ -65,8 +71,9 @@ namespace DailyArena.Common.Utility
 		/// <param name="url">The url to upload data to.</param>
 		/// <param name="data">The data to upload to the url.</param>
 		/// <param name="method">The method to use (defaults to "POST").</param>
+		/// <param name="ignoreWebException">If this is true, ignore WebExceptions (return null on failure instead).</param>
 		/// <returns>The string response from the server.</returns>
-		public static string UploadValues(string url, NameValueCollection data, string method = "POST")
+		public static string UploadValues(string url, NameValueCollection data, string method = "POST", bool ignoreWebException = false)
 		{
 			using (WebClientEx wc = new WebClientEx())
 			{
@@ -74,19 +81,24 @@ namespace DailyArena.Common.Utility
 				{
 					return Encoding.UTF8.GetString(wc.UploadValues(url, method, data));
 				}
-				catch (WebException e)
-				{
-					if (!e.Message.Contains("timed out"))
-					{
-						throw;
-					}
-				}
+				catch (WebException) { /* just retry it */ }
 			}
 
 			// if we got here, that means the original request timed out...we will give it one more try with a longer time-out value before we give up completely
 			using (WebClientEx wc = new WebClientEx() { Timeout = Timeout * 2 })
 			{
-				return Encoding.UTF8.GetString(wc.UploadValues(url, method, data));
+				try
+				{
+					return Encoding.UTF8.GetString(wc.UploadValues(url, method, data));
+				}
+				catch(WebException)
+				{
+					if(ignoreWebException)
+					{
+						return null;
+					}
+					throw;
+				}
 			}
 		}
 	}

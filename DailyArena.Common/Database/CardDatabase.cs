@@ -152,14 +152,13 @@ namespace DailyArena.Common.Database
 
 			if (_downloadLanguageMappings || _languageMappings.Count == 0)
 			{
-				_languageMappings = new Dictionary<string, Tuple<string, string>>();
-
 				bool saveLanguageMappings = true;
 
 				try
 				{
 					var result = WebUtilities.FetchStringFromUrl(languageMappingJsonUrl);
 					dynamic data = JToken.Parse(result);
+					_languageMappings = new Dictionary<string, Tuple<string, string>>();
 
 					foreach (dynamic mapping in data)
 					{
@@ -343,6 +342,9 @@ namespace DailyArena.Common.Database
 				_serverTimestamps["StandardDecks"] = "1970-01-01T00:00:00Z";
 				_serverTimestamps["BrawlDecks"] = "1970-01-01T00:00:00Z";
 				_serverTimestamps["ArenaStandardDecks"] = "1970-01-01T00:00:00Z";
+				_serverTimestamps["SetTranslations"] = "1970-01-01T00:00:00Z";
+				_serverTimestamps["LanguageMappings"] = "1970-01-01T00:00:00Z";
+				_serverTimestamps["HistoricDecks"] = "1970-01-01T00:00:00Z";
 			}
 
 			if (downloadData)
