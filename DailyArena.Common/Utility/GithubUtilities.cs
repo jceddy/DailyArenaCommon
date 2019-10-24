@@ -22,13 +22,15 @@ namespace DailyArena.Common.Utility
 		/// <param name="labels">An array of labels to attach to the new issue.</param>
 		/// <param name="fingerprint">The user's current unique identifier.</param>
 		/// <param name="attachments">Array of file attachment information for the issue.</param>
+		/// <param name="response">The unprocessed response string from the server.</param>
 		/// <param name="exception">Any exception that is caught while attempting to create the issue.</param>
 		/// <returns>An object creating the created or existing number, as well as a string determining whether a new issue was created.</returns>
 		public static GithubIssueResponse CreateNewIssue(string productHeader, string owner, string repo, string title, string body, string[] labels, Guid fingerprint,
-			GithubAttachment[] attachments, out Exception exception)
+			GithubAttachment[] attachments, out string response, out Exception exception)
 		{
 			exception = null;
 			GithubIssueResponse responseObject = null;
+			response = null;
 
 			try
 			{
@@ -43,7 +45,7 @@ namespace DailyArena.Common.Utility
 					{ "labels", string.Join(",", labels) },
 					{ "attachments", JsonConvert.SerializeObject(attachments) }
 				};
-				string response = WebUtilities.UploadValues("https://clans.dailyarena.net/create_github_issue.php", data);
+				response = WebUtilities.UploadValues("https://clans.dailyarena.net/create_github_issue.php", data);
 
 				responseObject = JsonConvert.DeserializeObject<GithubIssueResponse>(response);
 			}
