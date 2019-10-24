@@ -1,7 +1,7 @@
-﻿using Octokit;
-using Ookii.Dialogs.Wpf;
+﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Windows;
 
 namespace DailyArena.Common.Utility
@@ -19,74 +19,40 @@ namespace DailyArena.Common.Utility
 		/// <param name="repo">The name of the repo to create the issue for.</param>
 		/// <param name="title">The title of the new issue to create.</param>
 		/// <param name="body">The body of the new issue to create.</param>
-		/// <param name="labels">A list of labels to attach to the new issue.</param>
-		/// <param name="mainWindow">The calling Window.</param>
-		/// <param name="credentialDialogTitle">The title for the github credential dialog.</param>
-		/// <param name="credentialDialogInstruction">The main instructions for the github credential dialog.</param>
-		/// <param name="credentialDialogContent">The detailed content for the github credential dialog.</param>
+		/// <param name="labels">An array of labels to attach to the new issue.</param>
+		/// <param name="fingerprint">The user's current unique identifier.</param>
+		/// <param name="attachments">Array of file attachment information for the issue.</param>
 		/// <param name="exception">Any exception that is caught while attempting to create the issue.</param>
-		public static void CreateNewIssue(string productHeader, string owner, string repo, string title, string body, List<string> labels, Window mainWindow,
-			string credentialDialogTitle, string credentialDialogInstruction, string credentialDialogContent, out Exception exception)
+		/// <returns>An object creating the created or existing number, as well as a string determining whether a new issue was created.</returns>
+		public static GithubIssueResponse CreateNewIssue(string productHeader, string owner, string repo, string title, string body, string[] labels, Guid fingerprint,
+			GithubAttachment[] attachments, out Exception exception)
 		{
 			exception = null;
+			GithubIssueResponse responseObject = null;
 
 			try
 			{
-				CredentialDialog credentialDialog = new CredentialDialog
+				NameValueCollection data = new NameValueCollection()
 				{
-					Target = "github.com",
-					WindowTitle = credentialDialogTitle,
-					MainInstruction = credentialDialogInstruction,
-					Content = credentialDialogContent
+					{ "product_header", productHeader },
+					{ "owner", owner },
+					{ "repo", repo },
+					{ "title", title },
+					{ "fingerprint", fingerprint.ToString() },
+					{ "body", body },
+					{ "labels", string.Join(",", labels) },
+					{ "attachments", JsonConvert.SerializeObject(attachments) }
 				};
-				bool ok = false;
-				mainWindow.Dispatcher.Invoke(() => { ok = credentialDialog.ShowDialog(mainWindow); });
+				string response = WebUtilities.UploadValues("https://clans.dailyarena.net/create_github_issue.php", data);
 
-				if (ok)
-				{
-					var client = new GitHubClient(new ProductHeaderValue(productHeader))
-					{
-						Credentials = new Credentials(credentialDialog.UserName, credentialDialog.Password)
-					};
-					var issueRequest = new RepositoryIssueRequest
-					{
-						Filter = IssueFilter.All,
-						State = ItemStateFilter.Open
-					};
-					foreach (var label in labels)
-					{
-						issueRequest.Labels.Add(label);
-					}
-					var issues = client.Issue.GetAllForRepository(owner, repo).Result;
-
-					bool createIssue = true;
-					foreach (var issue in issues)
-					{
-						if (issue.Title == title)
-						{
-							createIssue = false;
-							break;
-						}
-					}
-
-					if (createIssue)
-					{
-						var newIssue = new NewIssue(title)
-						{
-							Body = body
-						};
-						foreach (var label in labels)
-						{
-							newIssue.Labels.Add(label);
-						}
-						var issue = client.Issue.Create(owner, repo, newIssue).Result;
-					}
-				}
+				responseObject = JsonConvert.DeserializeObject<GithubIssueResponse>(response);
 			}
 			catch(Exception e)
 			{
 				exception = e;
 			}
+
+			return responseObject;
 		}
 	}
 }
