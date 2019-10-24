@@ -48,6 +48,10 @@ namespace DailyArena.Common.Utility
 				response = WebUtilities.UploadValues("https://clans.dailyarena.net/create_github_issue.php", data);
 
 				responseObject = JsonConvert.DeserializeObject<GithubIssueResponse>(response);
+				if(responseObject.Number == 0)
+				{
+					throw new Exception(response);
+				}
 			}
 			catch(Exception e)
 			{
