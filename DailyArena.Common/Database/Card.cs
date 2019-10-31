@@ -86,13 +86,36 @@ namespace DailyArena.Common.Database
 		public string PrintedName { get; private set; }
 
 		/// <summary>
+		/// The card's color identity.
+		/// </summary>
+		private CardColors _colorIdentity;
+
+		/// <summary>
 		/// Gets the card's color identity;
 		/// </summary>
 		public CardColors ColorIdentity
 		{
 			get
 			{
-				return Set.ExtendedCardInfo.ContainsKey(ArenaId) ? Set.ExtendedCardInfo[ArenaId].ColorIdentity : null;
+				if (_colorIdentity == null)
+				{
+					if (Set.ExtendedCardInfo.ContainsKey(ArenaId))
+					{
+						_colorIdentity = Set.ExtendedCardInfo[ArenaId].ColorIdentity;
+					}
+					else
+					{
+						var otherCards = CardsByName[Name].Where(x => x.ArenaId != ArenaId);
+						foreach (Card otherCard in otherCards)
+						{
+							if (otherCard.Set.ExtendedCardInfo.ContainsKey(otherCard.ArenaId))
+							{
+								_colorIdentity = otherCard.Set.ExtendedCardInfo[otherCard.ArenaId].ColorIdentity;
+							}
+						}
+					}
+				}
+				return _colorIdentity;
 			}
 		}
 
