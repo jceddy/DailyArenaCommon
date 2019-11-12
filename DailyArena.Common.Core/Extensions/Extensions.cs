@@ -1,8 +1,8 @@
-﻿using Serilog;
+﻿using DailyArena.Common.Core.Utility;
+using Serilog;
 using System.Management;
-using System.Windows;
 
-namespace DailyArena.Common.Extensions
+namespace DailyArena.Common.Core.Extensions
 {
 	/// <summary>
 	/// Class that contains static extension methods for other classes.
@@ -19,8 +19,8 @@ namespace DailyArena.Common.Extensions
 		/// </summary>
 		static Extensions()
 		{
-			IApp application = (IApp)Application.Current;
-			_logger = application.Logger;
+			IApp application = ApplicationUtilities.CurrentApp;
+			_logger = application?.Logger;
 		}
 
 		/// <summary>
@@ -38,7 +38,7 @@ namespace DailyArena.Common.Extensions
 			}
 			catch (ManagementException ex)
 			{
-				_logger.Error(ex, "ManagementObject doesn't contain property {0}", propertyName);
+				_logger?.Error(ex, "ManagementObject doesn't contain property {0}", propertyName);
 				retval = null;
 			}
 			return retval;

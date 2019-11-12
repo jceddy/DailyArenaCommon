@@ -1,0 +1,9 @@
+﻿<Project>
+	<PropertyGroup>
+		<Version>1.0.0.5</Version>
+		<AssemblyVersion>1.0.0.5</AssemblyVersion>
+		<FileVersion>1.0.0.5</FileVersion>
+		<Copyright>© 2019 DailyArena</Copyright>
+		<Authors>Joseph Eddy</Authors>
+	</PropertyGroup>
+</Project>

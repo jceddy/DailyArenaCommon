@@ -1,6 +1,6 @@
 ﻿using Serilog;
 
-namespace DailyArena.Common
+namespace DailyArena.Common.Core
 {
 	/// <summary>
 	/// Interface for Daily Arena applications. Requires the application to host a Serilog logger.
@@ -10,6 +10,6 @@ namespace DailyArena.Common
 		/// <summary>
 		/// Gets the Serilog Logger for the application.
 		/// </summary>
-		ILogger Logger { get; }
+		ILogger Logger { get; set; }
 	}
 }
