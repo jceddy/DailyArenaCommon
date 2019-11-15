@@ -5,7 +5,7 @@ Visit our Patreon: https://www.patreon.com/DailyArena
 View the blog here: https://www.dailyarena.net
 
 # Download Binaries
-Version 1.0.0.5: https://clans.dailyarena.net/download/common/DailyArena.Common.dll
+Version 1.0.0.6: https://clans.dailyarena.net/download/common/DailyArena.Common.zip
 
 # Project Dependencies
 Projects that use this library:  
