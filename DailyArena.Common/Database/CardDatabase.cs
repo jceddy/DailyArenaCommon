@@ -1,4 +1,5 @@
-﻿using DailyArena.Common.Utility;
+﻿using DailyArena.Common.Core.Utility;
+using DailyArena.Common.Utility;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Net;
 
-namespace DailyArena.Common.Utility
+namespace DailyArena.Common.Core.Utility
 {
 	/// <summary>
 	/// Wrapper class for WebClient that allows setting request timeouts.

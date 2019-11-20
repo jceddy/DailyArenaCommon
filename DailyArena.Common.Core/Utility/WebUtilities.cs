@@ -4,7 +4,7 @@ using System.IO;
 using System.Net;
 using System.Text;
 
-namespace DailyArena.Common.Utility
+namespace DailyArena.Common.Core.Utility
 {
 	/// <summary>
 	/// A utility class containing useful methods for interacting with Web resources.
@@ -73,7 +73,7 @@ namespace DailyArena.Common.Utility
 					}
 				}
 			}
-			catch(WebException e)
+			catch (WebException e)
 			{
 				exceptions.Add(e);
 				if (ignoreWebException)
@@ -129,7 +129,7 @@ namespace DailyArena.Common.Utility
 				{
 					return Encoding.UTF8.GetString(wc.UploadValues(url, method, data));
 				}
-				catch(WebException e)
+				catch (WebException e)
 				{
 					exceptions.Add(e);
 					if (ignoreWebException)
