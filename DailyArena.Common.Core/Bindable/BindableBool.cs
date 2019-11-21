@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace DailyArena.Common.Bindable
+﻿namespace DailyArena.Common.Core.Bindable
 {
 	/// <summary>
 	/// A boolean value that Xaml fields can easily bind to.

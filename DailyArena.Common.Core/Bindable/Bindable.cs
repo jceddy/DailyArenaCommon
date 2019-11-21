@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq.Expressions;
 
-namespace DailyArena.Common.Bindable
+namespace DailyArena.Common.Core.Bindable
 {
 	/// <summary>
 	/// A generic class for objects that Xaml fields can easily bind to.
@@ -27,7 +27,7 @@ namespace DailyArena.Common.Bindable
 			}
 			set
 			{
-				if(!Equals(value))
+				if (!Equals(value))
 				{
 					_value = value;
 					RaiseValuePropertyChanged();
@@ -100,11 +100,11 @@ namespace DailyArena.Common.Bindable
 		/// <returns>True if the passed object is equal to this one.</returns>
 		public override bool Equals(object obj)
 		{
-			if(obj is T)
+			if (obj is T)
 			{
 				return this == (T)obj;
 			}
-			else if(obj is Bindable<T>)
+			else if (obj is Bindable<T>)
 			{
 				return this == (Bindable<T>)obj;
 			}
