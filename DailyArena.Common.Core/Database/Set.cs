@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 
-namespace DailyArena.Common.Database
+namespace DailyArena.Common.Core.Database
 {
 	/// <summary>
 	/// Class representing a Magic Expansion.

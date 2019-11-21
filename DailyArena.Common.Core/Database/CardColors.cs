@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 
-namespace DailyArena.Common.Database
+namespace DailyArena.Common.Core.Database
 {
 	/// <summary>
 	/// Class that represents a set of Magic colors.

@@ -1,5 +1,5 @@
-﻿using DailyArena.Common.Core.Utility;
-using DailyArena.Common.Utility;
+﻿using DailyArena.Common.Core.Cryptography;
+using DailyArena.Common.Core.Utility;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -8,12 +8,11 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Security.Cryptography;
-using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 
-namespace DailyArena.Common.Database
+namespace DailyArena.Common.Core.Database
 {
 	/// <summary>
 	/// Class that imports and parses the card database, and keeps track of server timestamps for cached card/set/deck data.
@@ -71,11 +70,11 @@ namespace DailyArena.Common.Database
 			var replacedName = pattern.Replace(card.Name, "");
 			string mappingKey = $"{replacedName}_{pattern.Replace(card.Set.Name, "")}_{card.CollectorNumber}";
 
-			if(_languageMappings.ContainsKey(mappingKey))
+			if (_languageMappings.ContainsKey(mappingKey))
 			{
 				return _languageMappings[mappingKey];
 			}
-			else 
+			else
 			{
 				return _languageMappings.Where(x => x.Key.StartsWith($"{replacedName}_")).Select(x => x.Value).FirstOrDefault();
 			}
@@ -96,12 +95,12 @@ namespace DailyArena.Common.Database
 			UpdateCardDatabase();
 
 			CurrentCulture = Thread.CurrentThread.CurrentUICulture.TwoLetterISOLanguageName;
-			if(CurrentCulture != "en")
+			if (CurrentCulture != "en")
 			{
 				LoadLanguageMappings();
 				UpdateLanguageMappings();
 
-				foreach(Card card in Card.AllCards)
+				foreach (Card card in Card.AllCards)
 				{
 					card.UpdateLanguageMappings();
 				}
@@ -118,8 +117,7 @@ namespace DailyArena.Common.Database
 			{
 				if (File.Exists($"language_mappings_{CurrentCulture}.dat"))
 				{
-					var userNameParts = WindowsIdentity.GetCurrent().Name.Split('\\');
-					var userName = $"{userNameParts[1]}@{userNameParts[0]}";
+					var userName = Environment.UserName;
 					var salt = HashAString(userName);
 
 					byte[] protectedBytes = File.ReadAllBytes($"language_mappings_{CurrentCulture}.dat");
@@ -183,8 +181,7 @@ namespace DailyArena.Common.Database
 		/// </summary>
 		public static void SaveLanguageMappings()
 		{
-			var userNameParts = WindowsIdentity.GetCurrent().Name.Split('\\');
-			var userName = $"{userNameParts[1]}@{userNameParts[0]}";
+			var userName = Environment.UserName;
 			var salt = HashAString(userName);
 
 			string json = JsonConvert.SerializeObject(_languageMappings);
@@ -211,8 +208,7 @@ namespace DailyArena.Common.Database
 			{
 				if (File.Exists("database.dat"))
 				{
-					var userNameParts = WindowsIdentity.GetCurrent().Name.Split('\\');
-					var userName = $"{userNameParts[1]}@{userNameParts[0]}";
+					var userName = Environment.UserName;
 					var salt = HashAString(userName);
 
 					byte[] protectedBytes = File.ReadAllBytes("database.dat");
@@ -284,8 +280,7 @@ namespace DailyArena.Common.Database
 				})
 			};
 
-			var userNameParts = WindowsIdentity.GetCurrent().Name.Split('\\');
-			var userName = $"{userNameParts[1]}@{userNameParts[0]}";
+			var userName = Environment.UserName;
 			var salt = HashAString(userName);
 
 			string json = JsonConvert.SerializeObject(data);
@@ -447,15 +442,15 @@ namespace DailyArena.Common.Database
 			}
 		}
 
-		static byte[] Protect(byte[] data, byte[] salt)
-		{
-			return ProtectedData.Protect(data, salt, DataProtectionScope.CurrentUser);
-		}
+		/// <summary>
+		/// Gets or sets a delegate to protect data using a salt.
+		/// </summary>
+		public static Func<byte[], byte[], byte[]> Protect { get; set; } = (data, salt) => Protection.Protect(data, salt);
 
-		static byte[] Unprotect(byte[] data, byte[] salt)
-		{
-			return ProtectedData.Unprotect(data, salt, DataProtectionScope.CurrentUser);
-		}
+		/// <summary>
+		/// Gets or sets a delegate to unprotect data using a salt.
+		/// </summary>
+		public static Func<byte[], byte[], byte[]> Unprotect { get; set; } = (data, salt) => Protection.Unprotect(data, salt);
 
 		static byte[] HashAString(string stringToHash)
 		{

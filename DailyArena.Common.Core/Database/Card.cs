@@ -3,15 +3,14 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Net;
 
-namespace DailyArena.Common.Database
+namespace DailyArena.Common.Core.Database
 {
 	/// <summary>
-	/// Class that reprsents a Magic Card.
+	/// Class that represents a Magic Card.
 	/// </summary>
 	public class Card : IComparable<Card>, IComparable<int>, IComparable<string>, INotifyPropertyChanged
 	{
@@ -125,6 +124,20 @@ namespace DailyArena.Common.Database
 		private Uri _imageUri = null;
 
 		/// <summary>
+		/// Gets or sets the delegate for resolving the image uri for a card.
+		/// </summary>
+		public static Func<Card, Uri> ImageUriResolver { get; set; } = null;
+
+		public void UpdateImageUriProperty(Uri imageUri)
+		{
+			if(_imageUri != imageUri)
+			{
+				_imageUri = imageUri;
+				PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("ImageUri"));
+			}
+		}
+
+		/// <summary>
 		/// The Uri for the card's (normal size) image.
 		/// </summary>
 		public Uri ImageUri
@@ -135,91 +148,32 @@ namespace DailyArena.Common.Database
 				{
 					return null;
 				}
-				if (_imageUri == null)
+				if (_imageUri == null && ImageUriResolver != null)
 				{
-					string cachedImageLocation = $"{_cachedCardImageFolder}\\{ScryfallId}.jpg";
-					Uri cachedImageUri = new Uri(cachedImageLocation);
-					if (File.Exists(cachedImageLocation))
-					{
-						File.SetLastAccessTime(cachedImageLocation, DateTime.Now);
-						_imageUri = cachedImageUri;
-					}
-					else
-					{
-						using (WebClient client = new WebClient())
-						{
-							client.DownloadDataCompleted += (sender, e) =>
-							{
-								if (e.Error == null)
-								{
-									File.WriteAllBytes(cachedImageLocation, e.Result);
-									_imageUri = cachedImageUri;
-									PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("ImageUri"));
-								}
-								else
-								{
-									// this may be dfc...check dfc images
-									try
-									{
-										byte[] front = client.DownloadData(new Uri($"https://www.jceddy.com/mtg/rmm/v2/card_images/normal/{ScryfallId}_0.jpg"));
-										byte[] back = client.DownloadData(new Uri($"https://www.jceddy.com/mtg/rmm/v2/card_images/normal/{ScryfallId}_1.jpg"));
-
-										using (MemoryStream frontStream = new MemoryStream(front))
-										using (MemoryStream backStream = new MemoryStream(back))
-										using (Image frontImage = Image.FromStream(frontStream))
-										using (Image backImage = Image.FromStream(backStream))
-										{
-											int width = frontImage.Width + backImage.Width;
-											int height = Math.Max(frontImage.Height, backImage.Height);
-											float horizontalResolution = frontImage.HorizontalResolution;
-											float verticalResolution = frontImage.VerticalResolution;
-
-											using (Bitmap combinedImage = new Bitmap(width, height))
-											{
-												combinedImage.SetResolution(horizontalResolution, verticalResolution);
-												using (Graphics g = Graphics.FromImage(combinedImage))
-												{
-													g.Clear(Color.White);
-													g.DrawImage(frontImage, new Point(0, 0));
-													g.DrawImage(backImage, new Point(frontImage.Width, 0));
-
-													combinedImage.Save(cachedImageLocation, ImageFormat.Jpeg);
-												}
-											}
-										}
-
-										_imageUri = cachedImageUri;
-										PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("ImageUri"));
-									}
-									catch (WebException) { /* ignore WebException...just means we didn't find the image */ }
-								}
-							};
-							client.DownloadDataAsync(new Uri($"https://www.jceddy.com/mtg/rmm/v2/card_images/normal/{ScryfallId}.jpg"));
-						}
-					}
+					_imageUri = ImageUriResolver(this);
 				}
 				return _imageUri;
 			}
 		}
 
 		/// <summary>
-		/// File path to the cached card images folder.
+		/// Gets or sets the file path to the cached card images folder.
 		/// </summary>
-		private static string _cachedCardImageFolder;
+		public static string CachedCardImageFolder { get; private set; }
 
 		/// <summary>
 		/// Static constructor, sets up folder for local image caching, clears any images that haven't been used for over a month.
 		/// </summary>
 		static Card()
 		{
-			_cachedCardImageFolder = $"{Directory.GetCurrentDirectory()}\\cached_card_images";
-			if (!Directory.Exists(_cachedCardImageFolder))
+			CachedCardImageFolder = $"{Directory.GetCurrentDirectory()}\\cached_card_images";
+			if (!Directory.Exists(CachedCardImageFolder))
 			{
-				Directory.CreateDirectory(_cachedCardImageFolder);
+				Directory.CreateDirectory(CachedCardImageFolder);
 			}
 			else
 			{
-				string[] files = Directory.GetFiles(_cachedCardImageFolder);
+				string[] files = Directory.GetFiles(CachedCardImageFolder);
 				DateTime aMonthAgo = DateTime.Now.AddMonths(-1);
 				foreach (string file in files)
 				{
@@ -285,7 +239,7 @@ namespace DailyArena.Common.Database
 		public void UpdateLanguageMappings()
 		{
 			Tuple<string, string> languageMapping = CardDatabase.GetMappedLanguageData(this);
-			if(languageMapping != null)
+			if (languageMapping != null)
 			{
 				PrintedName = languageMapping.Item1;
 				ScryfallId = languageMapping.Item2;

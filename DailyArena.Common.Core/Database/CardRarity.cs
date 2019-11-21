@@ -2,7 +2,7 @@
 using System.ComponentModel;
 using System.Globalization;
 
-namespace DailyArena.Common.Database
+namespace DailyArena.Common.Core.Database
 {
 	/// <summary>
 	/// Type that represents a Magic Card rarity.
