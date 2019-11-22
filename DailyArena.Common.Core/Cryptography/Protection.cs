@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System;
 using System.IO;
 using System.Security.Cryptography;
 
@@ -248,14 +250,81 @@ namespace DailyArena.Common.Core.Cryptography
 		{
 			if(_key == null)
 			{
-				CspParameters csp = new CspParameters
+				try
 				{
-					KeyContainerName = "DailyArena.Common.Core.Cryptography.Protection"
-				};
-				_key = new RSACryptoServiceProvider(1536, csp);
+					CspParameters csp = new CspParameters
+					{
+						KeyContainerName = "DailyArena.Common.Core.Cryptography.Protection"
+					};
+					_key = new RSACryptoServiceProvider(1536, csp);
+				}
+				catch(PlatformNotSupportedException)
+				{
+					// we're not running on Windows, need to do non-platform-specific stuff
+					string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ".protection");
+					if(!Directory.Exists(path))
+					{
+						Directory.CreateDirectory(path);
+					}
+					string filename = Path.Combine(path, "DailyArena.Common.Core.Cryptography.Protection");
+					if (File.Exists(filename))
+					{
+						_key = RSA.Create();
+						FromJsonString(_key, File.ReadAllText(filename));
+					}
+					else
+					{
+						_key = new RSACryptoServiceProvider(1536);
+						File.WriteAllText(filename, ToJsonString(_key, true));
+					}
+				}
 			}
 
 			return _key;
+		}
+
+		private static void FromJsonString(RSA rsa, string jsonString)
+		{
+			try
+			{
+				dynamic paramsJson = JToken.Parse(jsonString);
+
+				RSAParameters parameters = new RSAParameters
+				{
+					Modulus = paramsJson.Modulus != null ? Convert.FromBase64String((string)paramsJson.Modulus) : null,
+					Exponent = paramsJson.Exponent != null ? Convert.FromBase64String((string)paramsJson.Exponent) : null,
+					P = paramsJson.P != null ? Convert.FromBase64String((string)paramsJson.P) : null,
+					Q = paramsJson.Q != null ? Convert.FromBase64String((string)paramsJson.Q) : null,
+					DP = paramsJson.DP != null ? Convert.FromBase64String((string)paramsJson.DP) : null,
+					DQ = paramsJson.DQ != null ? Convert.FromBase64String((string)paramsJson.DQ) : null,
+					InverseQ = paramsJson.InverseQ != null ? Convert.FromBase64String((string)paramsJson.InverseQ) : null,
+					D = paramsJson.D != null ? Convert.FromBase64String((string)paramsJson.D) : null
+				};
+				rsa.ImportParameters(parameters);
+			}
+			catch
+			{
+				throw new Exception("Invalid JSON RSA key.");
+			}
+		}
+
+		private static string ToJsonString(RSA rsa, bool includePrivateParameters)
+		{
+			RSAParameters parameters = rsa.ExportParameters(includePrivateParameters);
+
+			var parasJson = new
+			{
+				Modulus = parameters.Modulus != null ? Convert.ToBase64String(parameters.Modulus) : null,
+				Exponent = parameters.Exponent != null ? Convert.ToBase64String(parameters.Exponent) : null,
+				P = parameters.P != null ? Convert.ToBase64String(parameters.P) : null,
+				Q = parameters.Q != null ? Convert.ToBase64String(parameters.Q) : null,
+				DP = parameters.DP != null ? Convert.ToBase64String(parameters.DP) : null,
+				DQ = parameters.DQ != null ? Convert.ToBase64String(parameters.DQ) : null,
+				InverseQ = parameters.InverseQ != null ? Convert.ToBase64String(parameters.InverseQ) : null,
+				D = parameters.D != null ? Convert.ToBase64String(parameters.D) : null
+			};
+
+			return JsonConvert.SerializeObject(parasJson);
 		}
 	}
 }

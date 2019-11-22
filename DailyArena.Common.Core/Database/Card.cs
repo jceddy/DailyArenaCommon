@@ -166,7 +166,7 @@ namespace DailyArena.Common.Core.Database
 		/// </summary>
 		static Card()
 		{
-			CachedCardImageFolder = $"{Directory.GetCurrentDirectory()}\\cached_card_images";
+			CachedCardImageFolder = Path.Combine(Directory.GetCurrentDirectory(), "cached_card_images");
 			if (!Directory.Exists(CachedCardImageFolder))
 			{
 				Directory.CreateDirectory(CachedCardImageFolder);
