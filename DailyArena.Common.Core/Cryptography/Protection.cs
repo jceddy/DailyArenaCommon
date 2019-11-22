@@ -196,7 +196,7 @@ namespace DailyArena.Common.Core.Cryptography
 				valid4 = true;
 				for(int i = 0; i < 32; i++)
 				{
-					if(digest[i] != secret[36 + 1])
+					if(digest[i] != secret[36 + i])
 					{
 						valid4 = false;
 					}
