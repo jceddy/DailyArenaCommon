@@ -1,5 +1,6 @@
 ﻿using DailyArena.Common.Core.Cryptography;
 using DailyArena.Common.Core.Utility;
+using Microsoft.CSharp.RuntimeBinder;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -228,8 +229,8 @@ namespace DailyArena.Common.Core.Database
 			{
 				dynamic data = JsonConvert.DeserializeObject(json);
 
-				LastCardDatabaseUpdate = data.LastCardDatabaseUpdate;
-				LastStandardSetsUpdate = data.LastStandardSetsUpdate;
+				try { LastCardDatabaseUpdate = data.LastCardDatabaseUpdate; } catch (RuntimeBinderException) { LastCardDatabaseUpdate = "1970-01-01T00:00:00Z"; }
+				try { LastStandardSetsUpdate = data.LastStandardSetsUpdate; } catch (RuntimeBinderException) { LastStandardSetsUpdate = "1970-01-01T00:00:00Z"; }
 				foreach (dynamic set in data.Sets)
 				{
 					Set.CreateSet((string)set.Name, (string)set.Code, (string)set.ArenaCode, set.NotInBooster.ToObject<List<string>>(), (int)set.TotalCards,
@@ -412,7 +413,7 @@ namespace DailyArena.Common.Core.Database
 					Card.ClearCards();
 					foreach (dynamic card in data.cards)
 					{
-						if ((bool)card.Value["collectible"] || (bool)card.Value["craftable"])
+						if ((bool)(card.Value["collectible"] ?? false) || (bool)(card.Value["craftable"] ?? false))
 						{
 							string scryfallId = string.Empty;
 							if (card.Value["images"] != null)
