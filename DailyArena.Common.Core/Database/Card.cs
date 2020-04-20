@@ -218,7 +218,7 @@ namespace DailyArena.Common.Core.Database
 			ScryfallId = scryfallId;
 			PrintedName = name;
 
-			if (Rarity == CardRarity.BasicLand)
+			if (Rarity == CardRarity.BasicLand || Rarity == CardRarity.Token)
 			{
 				BoosterCost = 0;
 			}

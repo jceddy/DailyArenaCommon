@@ -424,9 +424,10 @@ namespace DailyArena.Common.Core.Database
 									scryfallId = scryfallId.Substring(scryfallId.LastIndexOf('/') + 1).Split('.')[0];
 								}
 							}
+							int? rank = (int?)card.Value["rank"];
 							Card.CreateCard((int)card.Value["id"], (string)card.Value["name"], (string)card.Value["set"], (string)card.Value["cid"],
 								(string)card.Value["rarity"], string.Join("", card.Value["cost"].ToObject<string[]>()).ToUpper(),
-								(int)card.Value["rank"], (string)card.Value["type"], string.Join("", card.Value["cost"].ToObject<string[]>()).ToUpper(),
+								rank.HasValue ? rank.Value : -1, (string)card.Value["type"], string.Join("", card.Value["cost"].ToObject<string[]>()).ToUpper(),
 								(int)card.Value["cmc"], scryfallId);
 						}
 					}
