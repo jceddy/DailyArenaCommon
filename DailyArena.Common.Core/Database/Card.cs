@@ -356,6 +356,11 @@ namespace DailyArena.Common.Core.Database
 		{
 			Set set = Set.GetSet(setName);
 
+			if (name == "|Ceghm.")
+			{
+				name = "Swamp";
+			}
+
 			string fullName = $"{name} ({set.ArenaCode}) {collectorNumber}";
 			if (_cardsById.ContainsKey(arenaId))
 			{

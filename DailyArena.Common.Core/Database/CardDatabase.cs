@@ -413,8 +413,8 @@ namespace DailyArena.Common.Core.Database
 					Card.ClearCards();
 					foreach (dynamic card in data.cards)
 					{
-						if ((bool)(card.Value["collectible"] ?? false) || (bool)(card.Value["craftable"] ?? false))
-						{
+						//if ((bool)(card.Value["collectible"] ?? false) || (bool)(card.Value["craftable"] ?? false))
+						//{
 							string scryfallId = string.Empty;
 							if (card.Value["images"] != null)
 							{
@@ -427,9 +427,9 @@ namespace DailyArena.Common.Core.Database
 							int? rank = (int?)card.Value["rank"];
 							Card.CreateCard((int)card.Value["id"], (string)card.Value["name"], (string)card.Value["set"], (string)card.Value["cid"],
 								(string)card.Value["rarity"], string.Join("", card.Value["cost"].ToObject<string[]>()).ToUpper(),
-								rank.HasValue ? rank.Value : -1, (string)card.Value["type"], string.Join("", card.Value["cost"].ToObject<string[]>()).ToUpper(),
+								rank ?? -1, (string)card.Value["type"], string.Join("", card.Value["cost"].ToObject<string[]>()).ToUpper(),
 								(int)card.Value["cmc"], scryfallId);
-						}
+						//}
 					}
 				}
 				catch (WebException)
