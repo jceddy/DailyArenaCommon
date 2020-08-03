@@ -130,7 +130,7 @@ namespace DailyArena.Common.Core.Database
 
 		public void UpdateImageUriProperty(Uri imageUri)
 		{
-			if(_imageUri != imageUri)
+			if (_imageUri != imageUri)
 			{
 				_imageUri = imageUri;
 				PropertyChanged?.Invoke(this, new PropertyChangedEventArgs("ImageUri"));
@@ -201,14 +201,14 @@ namespace DailyArena.Common.Core.Database
 		/// <param name="cost">The card's casting cost.</param>
 		/// <param name="cmc">The card's converted mana cost.</param>
 		/// <param name="scryfallId">The card's unique identifier on Scryfall.</param>
-		private Card(int arenaId, string name, Set set, string collectorNumber, string rarity, string colors, string fullName, int rank, string type,
+		private Card(int arenaId, string name, Set set, string collectorNumber, CardRarity rarity, string colors, string fullName, int rank, string type,
 			string cost, int cmc, string scryfallId)
 		{
 			ArenaId = arenaId;
 			Name = name;
 			Set = set;
 			CollectorNumber = collectorNumber;
-			Rarity = CardRarity.CardRarityFromString(rarity);
+			Rarity = rarity;
 			Colors = CardColors.CardColorFromString(colors);
 			FullName = fullName;
 			Rank = rank;
@@ -336,6 +336,20 @@ namespace DailyArena.Common.Core.Database
 		/// </summary>
 		private static Dictionary<string, Card> _cardsByFullName = new Dictionary<string, Card>();
 
+		private static List<string> _basicLandNames = new List<string>() {
+			"Plains", "Island", "Swamp", "Mountain", "Forest", "Wastes"
+		};
+
+		/// <summary>
+		/// Check whether a string name is a valid basic land name.
+		/// </summary>
+		/// <param name="name">The name to check.</param>
+		/// <returns>True if the name is one of Plains, Island, Swamp, Mountain, Forest, Wastes, or a Snow-Covered version of one of those, false otherwise.</returns>
+		public static bool IsBasicLandName(string name)
+		{
+			return _basicLandNames.Contains(name.Replace("Snow-Covered ", string.Empty));
+		}
+
 		/// <summary>
 		/// Static Method to create new card object and add it to the database.
 		/// </summary>
@@ -356,9 +370,10 @@ namespace DailyArena.Common.Core.Database
 		{
 			Set set = Set.GetSet(setName);
 
-			if (name == "|Ceghm.")
+			CardRarity cardRarity = CardRarity.CardRarityFromString(rarity);
+			if(cardRarity == CardRarity.BasicLand && !IsBasicLandName(name))
 			{
-				name = "Swamp";
+				name = type.Split(' ').Where(x => !string.IsNullOrWhiteSpace(x)).Last();
 			}
 
 			string fullName = $"{name} ({set.ArenaCode}) {collectorNumber}";
@@ -377,7 +392,7 @@ namespace DailyArena.Common.Core.Database
 				return card;
 			}
 
-			Card newCard = new Card(arenaId, name, set, collectorNumber, rarity, colors, fullName, rank, type, cost, cmc, scryfallId);
+			Card newCard = new Card(arenaId, name, set, collectorNumber, cardRarity, colors, fullName, rank, type, cost, cmc, scryfallId);
 			_cardsById.Add(arenaId, newCard);
 			if (!_cardsByFullName.ContainsKey(fullName))
 			{
