@@ -368,45 +368,62 @@ namespace DailyArena.Common.Core.Database
 		public static Card CreateCard(int arenaId, string name, string setName, string collectorNumber, string rarity, string colors, int rank,
 			string type, string cost, int cmc, string scryfallId)
 		{
-			Set set = Set.GetSet(setName);
+			int step = 0;
 
-			CardRarity cardRarity = CardRarity.CardRarityFromString(rarity);
-			if(cardRarity == CardRarity.BasicLand && !IsBasicLandName(name))
+			try
 			{
-				name = type.Split(' ').Where(x => !string.IsNullOrWhiteSpace(x)).Last();
-			}
-
-			string fullName = $"{name} ({set.ArenaCode}) {collectorNumber}";
-			if (_cardsById.ContainsKey(arenaId))
-			{
-				Card card = _cardsById[arenaId];
-				if (card.FullName != fullName)
+				if(setName == "Aether Revolt" || setName == "Hour of Devastation")
 				{
-					throw new ArgumentException($"Card with ArenaId {arenaId} exists with full name {card.FullName}, but {fullName} was passed.");
+					// fixing a bug in the downloaded database
+					setName = "Historic Anthology 4";
 				}
-				else if (_cardsByFullName.ContainsKey(fullName))
-				{
-					int existingId = _cardsByFullName[fullName].ArenaId;
-					throw new ArgumentException($"Card with full name {fullName} exists with ArenaId {existingId}, but {arenaId} was passed.");
-				}
-				return card;
-			}
+				Set set = Set.GetSet(setName);
 
-			Card newCard = new Card(arenaId, name, set, collectorNumber, cardRarity, colors, fullName, rank, type, cost, cmc, scryfallId);
-			_cardsById.Add(arenaId, newCard);
-			if (!_cardsByFullName.ContainsKey(fullName))
-			{
-				// there are a few cards with art variants that aren't distinguishable by full name,
-				// in those cases, we just keep the first, so _cardsByFullName will be a slightly smaller
-				// set of cards than _cardsById
-				_cardsByFullName.Add(fullName, newCard);
+				CardRarity cardRarity = CardRarity.CardRarityFromString(rarity);
+				if (cardRarity == CardRarity.BasicLand && !IsBasicLandName(name))
+				{
+					name = type.Split(' ').Where(x => !string.IsNullOrWhiteSpace(x)).Last();
+				}
+
+				string fullName = $"{name} ({set.ArenaCode}) {collectorNumber}";
+				if (_cardsById.ContainsKey(arenaId))
+				{
+					Card card = _cardsById[arenaId];
+					step = 1;
+					if (card.FullName != fullName)
+					{
+						throw new ArgumentException($"Card with ArenaId {arenaId} exists with full name {card.FullName}, but {fullName} was passed.");
+					}
+					else if (_cardsByFullName.ContainsKey(fullName))
+					{
+						int existingId = _cardsByFullName[fullName].ArenaId;
+						throw new ArgumentException($"Card with full name {fullName} exists with ArenaId {existingId}, but {arenaId} was passed.");
+					}
+					return card;
+				}
+
+				step = 2;
+
+				Card newCard = new Card(arenaId, name, set, collectorNumber, cardRarity, colors, fullName, rank, type, cost, cmc, scryfallId);
+				_cardsById.Add(arenaId, newCard);
+				if (!_cardsByFullName.ContainsKey(fullName))
+				{
+					// there are a few cards with art variants that aren't distinguishable by full name,
+					// in those cases, we just keep the first, so _cardsByFullName will be a slightly smaller
+					// set of cards than _cardsById
+					_cardsByFullName.Add(fullName, newCard);
+				}
+				if (!_cardsByName.ContainsKey(name))
+				{
+					_cardsByName.Add(name, new List<Card>());
+				}
+				_cardsByName[name].Add(newCard);
+				return newCard;
 			}
-			if (!_cardsByName.ContainsKey(name))
+			catch(KeyNotFoundException e)
 			{
-				_cardsByName.Add(name, new List<Card>());
+				throw new KeyNotFoundException($"Key not found exception in Card.CreateCard(): step={step}, arenaId={arenaId}, name={name}, setName={setName}, collectorNumber={collectorNumber}, rarity={rarity}, colors={colors}, rank={rank}, type={type}, cost={cost}, cmc={cmc}, scryfallId={scryfallId}", e);
 			}
-			_cardsByName[name].Add(newCard);
-			return newCard;
 		}
 
 		/// <summary>

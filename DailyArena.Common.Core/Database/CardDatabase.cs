@@ -389,25 +389,36 @@ namespace DailyArena.Common.Core.Database
 				try
 				{
 					var result = WebUtilities.FetchStringFromUrl(cardDatabaseUrl);
+					File.WriteAllText(".\\logs\\downloaded_card_database.json", result);
 					dynamic data = JToken.Parse(result);
 
 					Set.ClearSets();
+					DateTime twoThousand = new DateTime(2000, 01, 01);
 					foreach (dynamic set in data["sets"])
 					{
-						if (standardSetsInfo.ContainsKey(set.Name))
+						string setName1 = (string)set.Name;
+						string setName2 = setName1.Replace(":", "");
+						if (standardSetsInfo.ContainsKey(setName1))
 						{
-							Tuple<List<string>, Dictionary<CardRarity, int>, int, DateTime, Dictionary<int, Set.CardInfo>> setInfo = standardSetsInfo[set.Name];
+							Tuple<List<string>, Dictionary<CardRarity, int>, int, DateTime, Dictionary<int, Set.CardInfo>> setInfo = standardSetsInfo[setName1];
+							Set.CreateSet(set.Name, (string)set.Value["scryfall"], (string)set.Value["arenacode"], setInfo.Item1, setInfo.Item3, setInfo.Item2, setInfo.Item4, setInfo.Item5);
+						}
+						else if (standardSetsInfo.ContainsKey(setName2))
+						{
+							Tuple<List<string>, Dictionary<CardRarity, int>, int, DateTime, Dictionary<int, Set.CardInfo>> setInfo = standardSetsInfo[setName2];
 							Set.CreateSet(set.Name, (string)set.Value["scryfall"], (string)set.Value["arenacode"], setInfo.Item1, setInfo.Item3, setInfo.Item2, setInfo.Item4, setInfo.Item5);
 						}
 						else
 						{
+							DateTime rotation = setName1.StartsWith("Arena") ? DateTime.MaxValue : twoThousand;
+							// if it isn't a standard set, assume it has already "rotated"
 							Set.CreateSet(set.Name, (string)set.Value["scryfall"], (string)set.Value["arenacode"], new List<string>(), 0,
 								new Dictionary<CardRarity, int>() {
 								{ CardRarity.Common, 0 },
 								{ CardRarity.Uncommon, 0 },
 								{ CardRarity.Rare, 0 },
 								{ CardRarity.MythicRare, 0 }
-								}, DateTime.MaxValue, new Dictionary<int, Set.CardInfo>());
+								}, rotation, new Dictionary<int, Set.CardInfo>());
 						}
 					}
 					Card.ClearCards();
