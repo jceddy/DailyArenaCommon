@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -376,7 +377,7 @@ namespace DailyArena.Common.Core.Database
 							set.Value["not_in_booster"].ToObject<List<string>>(),
 							set.Value["rarity_counts"].ToObject<Dictionary<CardRarity, int>>(),
 							(int)set.Value["total_cards"],
-							set.Value["rotation"] == null ? DateTime.MaxValue : DateTime.Parse((string)set.Value["rotation"]),
+							set.Value["rotation"] == null ? DateTime.MaxValue : DateTime.Parse((string)set.Value["rotation"], CultureInfo.InvariantCulture),
 							extendedCardInfo
 						);
 					}
