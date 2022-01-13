@@ -71,9 +71,14 @@ namespace DailyArena.Common.Core.Database
 		public int HashCode { get; private set; }
 
 		/// <summary>
-		/// Gets the set's rotation date.
+		/// Gets the date that the set enters standard rotation.
 		/// </summary>
-		public DateTime Rotation { get; private set; }
+		public DateTime RotationEnter { get; private set; }
+
+		/// <summary>
+		/// Gets the date that the set exits standard rotation.
+		/// </summary>
+		public DateTime RotationExit { get; private set; }
 
 		/// <summary>
 		/// Gets a flag representing whether the set is "rotation safe" (will not rotate within the next 80 days).
@@ -94,9 +99,10 @@ namespace DailyArena.Common.Core.Database
 		/// <param name="notInBooster">A list of names of cards in the set that don't appear in boosters (from Planeswalker decks, etc.)</param>
 		/// <param name="totalCards">The total number of cards in the set.</param>
 		/// <param name="rarityCounts">The number of cards of each rarity in the set.</param>
-		/// <param name="rotation">The date the set rotates out of standard.</param>
+		/// <param name="rotationEnter">The date the set rotates in to standard.</param>
+		/// <param name="rotationExit">The date the set rotates out of standard.</param>
 		/// <param name="extendedCardInfo">A dictionary containing extended card info for the set that isn't found in the main card database.</param>
-		private Set(string name, string code, string arenaCode, List<string> notInBooster, int totalCards, Dictionary<CardRarity, int> rarityCounts, DateTime rotation,
+		private Set(string name, string code, string arenaCode, List<string> notInBooster, int totalCards, Dictionary<CardRarity, int> rarityCounts, DateTime rotationEnter, DateTime rotationExit,
 			Dictionary<int, CardInfo> extendedCardInfo)
 		{
 			Code = code;
@@ -112,9 +118,10 @@ namespace DailyArena.Common.Core.Database
 				{ CardRarity.MythicRare, rarityCounts.ContainsKey(CardRarity.MythicRare) ? rarityCounts[CardRarity.MythicRare] : 0 }
 			});
 			HashCode = arenaCode.GetHashCode();
-			Rotation = rotation;
-			RotationSafe = Rotation.AddDays(-80) > DateTime.Now;
-			StandardLegal = Rotation > DateTime.Now;
+			RotationEnter = rotationEnter;
+			RotationExit = rotationExit;
+			RotationSafe = RotationEnter.AddDays(-279) > DateTime.Now;
+			StandardLegal = RotationEnter.AddDays(-8) < DateTime.Now && RotationExit.AddDays(-8) > DateTime.Now;
 			ExtendedCardInfo = new ReadOnlyDictionary<int, CardInfo>(extendedCardInfo);
 		}
 
@@ -173,11 +180,12 @@ namespace DailyArena.Common.Core.Database
 		/// <param name="notInBooster">A list of names of cards in the set that don't appear in boosters (from Planeswalker decks, etc.)</param>
 		/// <param name="totalCards">The total number of cards in the set.</param>
 		/// <param name="rarityCounts">The number of cards of each rarity in the set.</param>
-		/// <param name="rotation">The date the set rotates out of standard.</param>
+		/// <param name="rotationEnter">The date the set rotates in to standard.</param>
+		/// <param name="rotationExit">The date the set rotates out of standard.</param>
 		/// <param name="extendedCardInfo">A dictionary containing extended card info for the set that isn't found in the main card database.</param>
 		/// <returns>The new Set object.</returns>
 		public static Set CreateSet(string name, string code, string arenaCode, List<string> notInBooster, int totalCards,
-			Dictionary<CardRarity, int> rarityCounts, DateTime rotation, Dictionary<int, CardInfo> extendedCardInfo)
+			Dictionary<CardRarity, int> rarityCounts, DateTime rotationEnter, DateTime rotationExit, Dictionary<int, CardInfo> extendedCardInfo)
 		{
 			if (_setsByName.ContainsKey(name))
 			{
@@ -189,7 +197,7 @@ namespace DailyArena.Common.Core.Database
 				return set;
 			}
 
-			Set newSet = new Set(name, code, arenaCode, notInBooster, totalCards, rarityCounts, rotation, extendedCardInfo);
+			Set newSet = new Set(name, code, arenaCode, notInBooster, totalCards, rarityCounts, rotationEnter, rotationExit, extendedCardInfo);
 			_setsByName.Add(name, newSet);
 			_recomputeAllSets = true;
 			return newSet;

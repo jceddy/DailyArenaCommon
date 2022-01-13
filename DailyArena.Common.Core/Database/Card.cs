@@ -382,7 +382,8 @@ namespace DailyArena.Common.Core.Database
 				CardRarity cardRarity = CardRarity.CardRarityFromString(rarity);
 				if (cardRarity == CardRarity.BasicLand && !IsBasicLandName(name))
 				{
-					name = type.Split(' ').Where(x => !string.IsNullOrWhiteSpace(x)).Last();
+					IEnumerable<string> typenames = type.Split(' ').Where(x => !string.IsNullOrWhiteSpace(x));
+					name = typenames.Last();
 				}
 
 				string fullName = $"{name} ({set.ArenaCode}) {collectorNumber}";
@@ -423,6 +424,10 @@ namespace DailyArena.Common.Core.Database
 			catch(KeyNotFoundException e)
 			{
 				throw new KeyNotFoundException($"Key not found exception in Card.CreateCard(): step={step}, arenaId={arenaId}, name={name}, setName={setName}, collectorNumber={collectorNumber}, rarity={rarity}, colors={colors}, rank={rank}, type={type}, cost={cost}, cmc={cmc}, scryfallId={scryfallId}", e);
+			}
+			catch(InvalidOperationException e)
+			{
+				throw new InvalidOperationException($"Invaid operation exception in Card.CreateCard(): step={step}, arenaId={arenaId}, name={name}, setName={setName}, collectorNumber={collectorNumber}, rarity={rarity}, colors={colors}, rank={rank}, type={type}, cost={cost}, cmc={cmc}, scryfallId={scryfallId}", e);
 			}
 		}
 

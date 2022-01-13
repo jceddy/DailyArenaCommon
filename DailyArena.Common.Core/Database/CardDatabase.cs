@@ -232,16 +232,21 @@ namespace DailyArena.Common.Core.Database
 
 				try { LastCardDatabaseUpdate = data.LastCardDatabaseUpdate; } catch (RuntimeBinderException) { LastCardDatabaseUpdate = "1970-01-01T00:00:00Z"; }
 				try { LastStandardSetsUpdate = data.LastStandardSetsUpdate; } catch (RuntimeBinderException) { LastStandardSetsUpdate = "1970-01-01T00:00:00Z"; }
+				DateTime twoThousand = new DateTime(2000, 01, 01);
 				foreach (dynamic set in data.Sets)
 				{
 					Set.CreateSet((string)set.Name, (string)set.Code, (string)set.ArenaCode, set.NotInBooster.ToObject<List<string>>(), (int)set.TotalCards,
-						set.RarityCounts.ToObject<Dictionary<CardRarity, int>>(), (DateTime)(set.Rotation ?? DateTime.MaxValue),
+						set.RarityCounts.ToObject<Dictionary<CardRarity, int>>(), (DateTime)(set.RotationEnter ?? twoThousand), (DateTime)(set.RotationExit ?? DateTime.MaxValue),
 						set.ExtendedCardInfo == null ? new Dictionary<int, Set.CardInfo>() : set.ExtendedCardInfo.ToObject<Dictionary<int, Set.CardInfo>>());
 				}
 				foreach (dynamic card in data.Cards)
 				{
-					Card.CreateCard((int)card.ArenaId, (string)card.Name, (string)card.Set, (string)card.CollectorNumber, (string)card.Rarity,
-						(string)card.Colors, (int)card.Rank, (string)card.Type, (string)card.Cost, (int)card.Cmc, (string)card.ScryfallId);
+					string type = (string)card.Type;
+					if (!string.IsNullOrWhiteSpace(type))
+					{
+						Card.CreateCard((int)card.ArenaId, (string)card.Name, (string)card.Set, (string)card.CollectorNumber, (string)card.Rarity,
+							(string)card.Colors, (int)card.Rank, type, (string)card.Cost, (int)card.Cmc, (string)card.ScryfallId);
+					}
 				}
 			}
 		}
@@ -263,7 +268,8 @@ namespace DailyArena.Common.Core.Database
 					x.NotInBooster,
 					x.TotalCards,
 					x.RarityCounts,
-					x.Rotation,
+					x.RotationEnter,
+					x.RotationExit,
 					x.ExtendedCardInfo
 				}),
 				Cards = Card.AllCards.Select(x => new
@@ -352,13 +358,16 @@ namespace DailyArena.Common.Core.Database
 				//   Item1 => NotInBooster
 				//   Item2 => RarityCounts
 				//   Item3 => TotalCards
-				//   Item4 => RotationDate
-				Dictionary<string, Tuple<List<string>, Dictionary<CardRarity, int>, int, DateTime, Dictionary<int, Set.CardInfo>>> standardSetsInfo =
-					new Dictionary<string, Tuple<List<string>, Dictionary<CardRarity, int>, int, DateTime, Dictionary<int, Set.CardInfo>>>();
+				//   Item4 => RotationEnter
+				//   Item5 => RotationExit
+				//   Item4 => ExtendedCardInfo
+				Dictionary<string, Tuple<List<string>, Dictionary<CardRarity, int>, int, DateTime, DateTime, Dictionary<int, Set.CardInfo>>> standardSetsInfo =
+					new Dictionary<string, Tuple<List<string>, Dictionary<CardRarity, int>, int, DateTime, DateTime, Dictionary<int, Set.CardInfo>>>();
 
 				LastCardDatabaseUpdate = _serverTimestamps["CardDatabase"];
 				LastStandardSetsUpdate = _serverTimestamps["StandardSets"];
 				bool saveCardDatabase = true;
+				DateTime twoThousand = new DateTime(2000, 01, 01);
 
 				try
 				{
@@ -373,11 +382,12 @@ namespace DailyArena.Common.Core.Database
 							extendedCardInfo[int.Parse(cardInfo.Name)] = new Set.CardInfo((string)cardInfo.Value["color_identity"]);
 						}
 
-						standardSetsInfo[(string)set.Value["name"]] = new Tuple<List<string>, Dictionary<CardRarity, int>, int, DateTime, Dictionary<int, Set.CardInfo>>(
+						standardSetsInfo[(string)set.Value["name"]] = new Tuple<List<string>, Dictionary<CardRarity, int>, int, DateTime, DateTime, Dictionary<int, Set.CardInfo>>(
 							set.Value["not_in_booster"].ToObject<List<string>>(),
 							set.Value["rarity_counts"].ToObject<Dictionary<CardRarity, int>>(),
 							(int)set.Value["total_cards"],
-							set.Value["rotation"] == null ? DateTime.MaxValue : DateTime.Parse((string)set.Value["rotation"], CultureInfo.InvariantCulture),
+							set.Value["rotation"] == null ? twoThousand : (set.Value["rotation"]["enterDate"] == null ? DateTime.MaxValue : DateTime.Parse((string)set.Value["rotation"]["enterDate"], CultureInfo.InvariantCulture)),
+							(set.Value["rotation"] == null || set.Value["rotation"]["exitDate"] == null) ? DateTime.MaxValue : DateTime.Parse((string)set.Value["rotation"]["exitDate"], CultureInfo.InvariantCulture),
 							extendedCardInfo
 						);
 					}
@@ -394,20 +404,19 @@ namespace DailyArena.Common.Core.Database
 					dynamic data = JToken.Parse(result);
 
 					Set.ClearSets();
-					DateTime twoThousand = new DateTime(2000, 01, 01);
 					foreach (dynamic set in data["sets"])
 					{
 						string setName1 = (string)set.Name;
 						string setName2 = setName1.Replace(":", "");
 						if (standardSetsInfo.ContainsKey(setName1))
 						{
-							Tuple<List<string>, Dictionary<CardRarity, int>, int, DateTime, Dictionary<int, Set.CardInfo>> setInfo = standardSetsInfo[setName1];
-							Set.CreateSet(set.Name, (string)set.Value["scryfall"], (string)set.Value["arenacode"], setInfo.Item1, setInfo.Item3, setInfo.Item2, setInfo.Item4, setInfo.Item5);
+							Tuple<List<string>, Dictionary<CardRarity, int>, int, DateTime, DateTime, Dictionary<int, Set.CardInfo>> setInfo = standardSetsInfo[setName1];
+							Set.CreateSet(set.Name, (string)set.Value["scryfall"], (string)set.Value["arenacode"], setInfo.Item1, setInfo.Item3, setInfo.Item2, setInfo.Item4, setInfo.Item5, setInfo.Item6);
 						}
 						else if (standardSetsInfo.ContainsKey(setName2))
 						{
-							Tuple<List<string>, Dictionary<CardRarity, int>, int, DateTime, Dictionary<int, Set.CardInfo>> setInfo = standardSetsInfo[setName2];
-							Set.CreateSet(set.Name, (string)set.Value["scryfall"], (string)set.Value["arenacode"], setInfo.Item1, setInfo.Item3, setInfo.Item2, setInfo.Item4, setInfo.Item5);
+							Tuple<List<string>, Dictionary<CardRarity, int>, int, DateTime, DateTime, Dictionary<int, Set.CardInfo>> setInfo = standardSetsInfo[setName2];
+							Set.CreateSet(set.Name, (string)set.Value["scryfall"], (string)set.Value["arenacode"], setInfo.Item1, setInfo.Item3, setInfo.Item2, setInfo.Item4, setInfo.Item5, setInfo.Item6);
 						}
 						else
 						{
@@ -419,7 +428,7 @@ namespace DailyArena.Common.Core.Database
 								{ CardRarity.Uncommon, 0 },
 								{ CardRarity.Rare, 0 },
 								{ CardRarity.MythicRare, 0 }
-								}, rotation, new Dictionary<int, Set.CardInfo>());
+								}, twoThousand, rotation, new Dictionary<int, Set.CardInfo>());
 						}
 					}
 					Card.ClearCards();
@@ -437,10 +446,14 @@ namespace DailyArena.Common.Core.Database
 								}
 							}
 							int? rank = (int?)card.Value["rank"];
-							Card.CreateCard((int)card.Value["id"], (string)card.Value["name"], (string)card.Value["set"], (string)card.Value["cid"],
-								(string)card.Value["rarity"], string.Join("", card.Value["cost"].ToObject<string[]>()).ToUpper(),
-								rank ?? -1, (string)card.Value["type"], string.Join("", card.Value["cost"].ToObject<string[]>()).ToUpper(),
-								(int)card.Value["cmc"], scryfallId);
+							string type = (string)card.Value["type"];
+							if (!string.IsNullOrWhiteSpace(type))
+							{
+								Card.CreateCard((int)card.Value["id"], (string)card.Value["name"], (string)card.Value["set"], (string)card.Value["cid"],
+									(string)card.Value["rarity"], string.Join("", card.Value["cost"].ToObject<string[]>()).ToUpper(),
+									rank ?? -1, type, string.Join("", card.Value["cost"].ToObject<string[]>()).ToUpper(),
+									(int)card.Value["cmc"], scryfallId);
+							}
 						//}
 					}
 				}
